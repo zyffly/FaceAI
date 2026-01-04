@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.media.Image
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
 
@@ -65,6 +67,7 @@ class YuvToRgbConverter(context: Context) {
     }
 
     // Convert ImageProxy to Bitmap
+    @OptIn(ExperimentalGetImage::class)
     fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
         val image = imageProxy.image ?: return null
         

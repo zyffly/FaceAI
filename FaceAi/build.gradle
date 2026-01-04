@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// 统一版本号配置，供 versionName / BuildConfig / 输出文件名复用
+def faceAiVersion = "1.0.0"
+
 android {
     namespace 'com.felix.face'
     compileSdk = 34
@@ -10,9 +13,11 @@ android {
     defaultConfig {
         minSdk 24
         targetSdk 34
+        versionName faceAiVersion
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
+        buildConfigField "String", "FACEAI_VERSION", "\"${faceAiVersion}\""
         
         externalNativeBuild {
             cmake {
@@ -25,6 +30,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -32,11 +41,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '11'
+        jvmTarget = '17'
     }
     
     externalNativeBuild {
@@ -54,6 +63,13 @@ android {
         resources.merges.add("**/mediapipe_tasks_face_face_mesh_pyramid_model.binarypb")
         resources.merges.add("**/face_landmark_with_attention.tflite")
         resources.merges.add("**/face_mesh_mobile.binarypb")
+    }
+
+
+    libraryVariants.configureEach { variant ->
+        variant.outputs.all {
+            outputFileName = "FaceAi-${faceAiVersion}-${variant.name}.aar"
+        }
     }
 }
 

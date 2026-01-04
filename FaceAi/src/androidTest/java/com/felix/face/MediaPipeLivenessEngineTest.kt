@@ -4,10 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.felix.face.MediaPipeLivenessEngine.EngineCallback
-import com.felix.face.MediaPipeLivenessEngine.Step
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,28 +44,30 @@ class MediaPipeLivenessEngineTest {
     @Test
     fun testEngineInitializationAndDestruction() {
         val latch = CountDownLatch(1)
+        var initSuccess = false
 
         val callback = object : EngineCallback {
-            override fun onStepChanged(step: Step, message: String) {}
-            override fun onProgress(progress: Float) {}
-            override fun onActionRequired(action: String) {}
-            override fun onFaceInFrame() {}
-            override fun onActionCompleted(step: Step) {}
-            override fun onCaptureSuccess(bitmap: Bitmap) {}
-            override fun onTimeout(step: Step) {}
-            override fun onFailure(message: String) {
-                fail("Engine failed to initialize with message: $message")
+            override fun onInit(code: Int) {
+                if (code == FaceCode.CODE_SUCCESS) {
+                    initSuccess = true
+                } else {
+                    fail("Engine failed to initialize with code: $code")
+                }
+                latch.countDown()
             }
-            override fun onMessage(message: String) {}
+
+            override fun onProgress(scene: Int, progress: Float) {}
+            override fun onTip(scene: Int, action: Int?, code: Int) {}
+            override fun onCompleted(scene: Int, action: Int?, code: Int) {}
+            override fun onCapture(scene: Int, bitmap: Bitmap) {}
         }
 
         livenessEngine.init(callback)
         assertNotNull("LivenessEngine should not be null after creation", livenessEngine)
         
-        // A simple way to ensure init doesn't crash immediately
-        // A more complex test would involve mocking MediaPipe results
-        livenessEngine.start()
-        latch.await(500, TimeUnit.MILLISECONDS) // Give it a moment
+        // Wait for initialization to complete
+        latch.await(5, TimeUnit.SECONDS)
+        assertTrue("Engine should initialize successfully", initSuccess)
     }
     
     /**
@@ -73,17 +75,26 @@ class MediaPipeLivenessEngineTest {
      */
     @Test
     fun testNullFrameProcessing() {
+        val initLatch = CountDownLatch(1)
+        var initSuccess = false
+
         livenessEngine.init(object : EngineCallback {
-            override fun onStepChanged(step: Step, message: String) {}
-            override fun onProgress(progress: Float) {}
-            override fun onActionRequired(action: String) {}
-            override fun onFaceInFrame() {}
-            override fun onActionCompleted(step: Step) {}
-            override fun onCaptureSuccess(bitmap: Bitmap) {}
-            override fun onTimeout(step: Step) {}
-            override fun onFailure(message: String) {}
-            override fun onMessage(message: String) {}
+            override fun onInit(code: Int) {
+                if (code == FaceCode.CODE_SUCCESS) {
+                    initSuccess = true
+                }
+                initLatch.countDown()
+            }
+
+            override fun onProgress(scene: Int, progress: Float) {}
+            override fun onTip(scene: Int, action: Int?, code: Int) {}
+            override fun onCompleted(scene: Int, action: Int?, code: Int) {}
+            override fun onCapture(scene: Int, bitmap: Bitmap) {}
         })
+
+        // Wait for initialization
+        initLatch.await(5, TimeUnit.SECONDS)
+        assertTrue("Engine should initialize successfully", initSuccess)
 
         try {
             // This test is basic, it does not mock a real ImageProxy
